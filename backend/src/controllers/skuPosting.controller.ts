@@ -24,7 +24,9 @@ export class SkuPostingController {
       const customRegex = req.body.customRegex as string | undefined;
 
       const files = req.files as Express.Multer.File[];
-      const baseUrl = `http://localhost:${env.PORT}`;
+      const baseUrl = process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : `http://localhost:${env.PORT}`;
       const fileInfos: any[] = [];
 
       if (files && files.length > 0) {

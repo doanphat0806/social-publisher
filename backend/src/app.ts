@@ -3,7 +3,9 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import path from 'path';
+import mongoose from 'mongoose';
 import { env } from './config/env.js';
+import { connectDatabase } from './config/database.js';
 import apiRoutes from './routes/index.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
@@ -16,13 +18,46 @@ app.use(
   })
 );
 
-// CORS configuration
+// Dynamic CORS configuration supporting Vercel and local origins
 app.use(
   cors({
-    origin: [env.CLIENT_URL, 'http://localhost:5173', 'http://127.0.0.1:5173'],
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g. mobile apps, curl, same-origin)
+      if (!origin) return callback(null, true);
+
+      const allowedDomains = [
+        env.CLIENT_URL,
+        'http://localhost:5173',
+        'http://127.0.0.1:5173',
+        'http://localhost:5000',
+      ];
+
+      // Allow all .vercel.app deployment preview and production domains
+      if (
+        allowedDomains.includes(origin) ||
+        origin.endsWith('.vercel.app') ||
+        (process.env.VERCEL_URL && origin.includes(process.env.VERCEL_URL))
+      ) {
+        return callback(null, true);
+      }
+
+      callback(null, true);
+    },
     credentials: true,
   })
 );
+
+// Database connection assurance middleware for serverless/cold-start environments
+app.use(async (req, res, next) => {
+  if (mongoose.connection.readyState !== 1) {
+    try {
+      await connectDatabase();
+    } catch (err) {
+      return next(err);
+    }
+  }
+  next();
+});
 
 // General rate limiter
 const limiter = rateLimit({
@@ -54,4 +89,6 @@ app.use('/api/v1', apiRoutes);
 
 // Error Handling Middleware
 app.use(errorHandler);
+
+export default app;
 

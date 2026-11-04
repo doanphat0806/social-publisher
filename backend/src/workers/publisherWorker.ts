@@ -125,7 +125,9 @@ export class PublisherWorker {
       return;
     }
 
-    const baseUrl = `http://localhost:${env.PORT}`;
+    const baseUrl = process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : `http://localhost:${env.PORT}`;
 
     // 4. Step: Upload unpublished photos (resumable)
     // task.facebookPhotoIds stores already uploaded photo IDs to avoid re-uploading on retry

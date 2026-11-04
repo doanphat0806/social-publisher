@@ -6,10 +6,12 @@ import { z } from 'zod';
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 dotenv.config({ path: path.resolve(process.cwd(), '../.env') });
 
+const vercelBaseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '';
+
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().default(5000),
-  CLIENT_URL: z.string().default('http://localhost:5173'),
+  CLIENT_URL: z.string().default(vercelBaseUrl || 'http://localhost:5173'),
 
   // Database & Cache
   MONGO_URI: z.string().default('mongodb://localhost:27017/xeko_publisher'),
@@ -24,12 +26,18 @@ const envSchema = z.object({
   // Facebook Graph API
   FACEBOOK_APP_ID: z.string().default(''),
   FACEBOOK_APP_SECRET: z.string().default(''),
-  FACEBOOK_REDIRECT_URI: z.string().default('http://localhost:5000/api/v1/facebook/oauth/callback'),
+  FACEBOOK_REDIRECT_URI: z.string().default(
+    vercelBaseUrl
+      ? `${vercelBaseUrl}/api/v1/facebook/oauth/callback`
+      : 'http://localhost:5000/api/v1/facebook/oauth/callback'
+  ),
   FACEBOOK_GRAPH_VERSION: z.string().default('v22.0'),
 
   // Storage
   STORAGE_TYPE: z.enum(['local', 's3']).default('local'),
-  UPLOAD_DIR: z.string().default(path.resolve(process.cwd(), 'uploads')),
+  UPLOAD_DIR: z.string().default(
+    process.env.VERCEL ? path.resolve('/tmp', 'uploads') : path.resolve(process.cwd(), 'uploads')
+  ),
   MAX_FILE_SIZE_MB: z.coerce.number().default(20), // 20MB per photo
 
   // S3 Compatible (optional)

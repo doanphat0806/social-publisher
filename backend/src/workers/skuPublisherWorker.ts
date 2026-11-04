@@ -126,7 +126,9 @@ export class SkuPublisherWorker {
       return;
     }
 
-    const baseUrl = `http://localhost:${env.PORT}`;
+    const baseUrl = process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : `http://localhost:${env.PORT}`;
     const photoIds: string[] = [...(task.facebookPhotoIds || [])];
 
     try {

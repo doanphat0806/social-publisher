@@ -74,3 +74,6 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 bootstrap();
 
+export { app };
+export default app;
+
