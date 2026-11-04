@@ -8,10 +8,10 @@ export async function connectDatabase(): Promise<void> {
   try {
     mongoose.set('strictQuery', true);
     await mongoose.connect(env.MONGO_URI, {
-      serverSelectionTimeoutMS: 2000,
+      serverSelectionTimeoutMS: 15000,
       autoIndex: true,
     });
-    logger.info(`Connected to MongoDB successfully at ${env.MONGO_URI}`);
+    logger.info('Connected to MongoDB successfully');
   } catch (error: any) {
     if (env.NODE_ENV === 'development') {
       logger.warn(`Không tìm thấy MongoDB local tại ${env.MONGO_URI}. Đang tự động kích hoạt MongoDB In-Memory Server...`);

@@ -50,12 +50,19 @@ app.use(
 // Database connection assurance middleware for serverless/cold-start environments
 app.use(async (req, res, next) => {
   if (mongoose.connection.readyState !== 1) {
-    try {
-      await connectDatabase();
-    } catch (err) {
-      return next(err);
+    await connectDatabase();
+  }
+
+  // If database is not connected, return clear diagnostic error instead of 10s buffer timeout
+  if (req.path.startsWith('/api') && req.path !== '/health' && req.path !== '/api/v1/health') {
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({
+        success: false,
+        message: `Lỗi kết nối cơ sở dữ liệu MongoDB: Không thể kết nối tới ${env.MONGO_URI}. Vui lòng bật MongoDB local hoặc điền chuỗi kết nối MONGO_URI (ví dụ: MongoDB Atlas Cloud miễn phí) trong file .env.`,
+      });
     }
   }
+
   next();
 });
 
