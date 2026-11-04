@@ -50,15 +50,25 @@ app.use(
 // Database connection assurance middleware for serverless/cold-start environments
 app.use(async (req, res, next) => {
   if (mongoose.connection.readyState !== 1) {
-    await connectDatabase();
+    try {
+      await connectDatabase();
+    } catch (err: any) {
+      // Log connection failure
+    }
   }
 
-  // If database is not connected, return clear diagnostic error instead of 10s buffer timeout
-  if (req.path.startsWith('/api') && req.path !== '/health' && req.path !== '/api/v1/health') {
+  // If database is not connected for data operations, return clear diagnostic error
+  if (
+    req.path.includes('/auth') ||
+    req.path.includes('/campaigns') ||
+    req.path.includes('/facebook') ||
+    req.path.includes('/sku-posting')
+  ) {
     if (mongoose.connection.readyState !== 1) {
       return res.status(503).json({
         success: false,
-        message: `Lỗi kết nối cơ sở dữ liệu MongoDB: Không thể kết nối tới ${env.MONGO_URI}. Vui lòng bật MongoDB local hoặc điền chuỗi kết nối MONGO_URI (ví dụ: MongoDB Atlas Cloud miễn phí) trong file .env.`,
+        message:
+          'Lỗi kết nối cơ sở dữ liệu MongoDB Atlas: Serverless function chưa thể kết nối tới Database. Vui lòng kiểm tra: 1) Đã thêm MONGO_URI vào Environment Variables trên Vercel chưa? 2) Đã bật "Allow Access from Anywhere" (0.0.0.0/0) trong MongoDB Atlas Network Access chưa?',
       });
     }
   }
@@ -91,8 +101,9 @@ app.get('/health', (req, res) => {
   });
 });
 
-// API Routes mounted on /api/v1
+// API Routes mounted on both /api/v1 and /v1 (guarantees compatibility across reverse proxies & rewrites)
 app.use('/api/v1', apiRoutes);
+app.use('/v1', apiRoutes);
 
 // Error Handling Middleware
 app.use(errorHandler);

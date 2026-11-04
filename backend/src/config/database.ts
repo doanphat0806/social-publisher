@@ -2,43 +2,48 @@ import mongoose from 'mongoose';
 import { env } from './env.js';
 import { logger } from '../utils/logger.js';
 
-let memoryServer: any = null;
+// Global cache for serverless environments (Vercel / AWS Lambda)
+let cached = (global as any).mongoose;
 
-export async function connectDatabase(): Promise<void> {
-  try {
+if (!cached) {
+  cached = (global as any).mongoose = { conn: null, promise: null };
+}
+
+export async function connectDatabase(): Promise<typeof mongoose> {
+  // If connection already established, return it immediately
+  if (cached.conn && mongoose.connection.readyState === 1) {
+    return cached.conn;
+  }
+
+  if (!cached.promise) {
     mongoose.set('strictQuery', true);
-    await mongoose.connect(env.MONGO_URI, {
-      serverSelectionTimeoutMS: 15000,
-      autoIndex: true,
-    });
-    logger.info('Connected to MongoDB successfully');
-  } catch (error: any) {
-    if (env.NODE_ENV === 'development') {
-      logger.warn(`Không tìm thấy MongoDB local tại ${env.MONGO_URI}. Đang tự động kích hoạt MongoDB In-Memory Server...`);
-      try {
-        const { MongoMemoryServer } = await import('mongodb-memory-server');
-        memoryServer = await MongoMemoryServer.create();
-        const memoryUri = memoryServer.getUri();
-        await mongoose.connect(memoryUri, { autoIndex: true });
-        logger.info(`MongoDB In-Memory Server đã khởi chạy thành công tại: ${memoryUri}`);
-        return;
-      } catch (memError) {
-        logger.error('Không thể khởi tạo In-Memory MongoDB:', memError);
-      }
-    }
 
+    const opts: mongoose.ConnectOptions = {
+      bufferCommands: false,
+      serverSelectionTimeoutMS: 5000, // 5s timeout within Vercel's limit
+      autoIndex: true,
+    };
+
+    logger.info('Connecting to MongoDB...');
+    cached.promise = mongoose.connect(env.MONGO_URI, opts).then((m) => {
+      logger.info('Connected to MongoDB successfully');
+      return m;
+    });
+  }
+
+  try {
+    cached.conn = await cached.promise;
+    return cached.conn;
+  } catch (error: any) {
+    cached.promise = null;
     logger.error('Failed to connect to MongoDB:', error.message);
-    if (env.NODE_ENV === 'production') {
-      process.exit(1);
-    }
+    throw error;
   }
 }
 
 export async function disconnectDatabase(): Promise<void> {
   await mongoose.disconnect();
-  if (memoryServer) {
-    await memoryServer.stop();
-  }
+  cached.conn = null;
+  cached.promise = null;
   logger.info('Disconnected from MongoDB');
 }
-
