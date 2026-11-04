@@ -4,6 +4,10 @@
   "private": true,
   "type": "module",
   "description": "Facebook Multi-Page Bulk Publishing System",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
   "scripts": {
     "dev": "node start-dev.js",
     "dev:backend": "npm run dev --prefix backend",
@@ -13,4 +17,3 @@
     "start": "npm start --prefix backend"
   }
 }
-

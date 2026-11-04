@@ -4,12 +4,10 @@
     "frontend": {
       "root": "frontend",
       "framework": "vite",
-      "bindings": [
+      "rewrites": [
         {
-          "type": "service",
-          "service": "backend",
-          "format": "url",
-          "env": "BACKEND_URL"
+          "source": "/(.*)",
+          "destination": "/index.html"
         }
       ]
     },
@@ -38,22 +36,9 @@
       }
     },
     {
-      "source": "/assets/(.*)",
-      "destination": {
-        "service": "frontend"
-      }
-    },
-    {
-      "source": "/(vite\\.svg|favicon\\.ico)",
-      "destination": {
-        "service": "frontend"
-      }
-    },
-    {
       "source": "/(.*)",
       "destination": {
-        "service": "frontend",
-        "path": "/index.html"
+        "service": "frontend"
       }
     }
   ]

@@ -14,7 +14,13 @@ const envSchema = z.object({
   CLIENT_URL: z.string().default(vercelBaseUrl || 'http://localhost:5173'),
 
   // Database & Cache
-  MONGO_URI: z.string().default('mongodb://localhost:27017/xeko_publisher'),
+  MONGO_URI: z
+    .string()
+    .default(
+      process.env.MONGODB_URI ||
+        process.env.MONGO_URI ||
+        'mongodb://localhost:27017/xeko_publisher'
+    ),
   REDIS_URL: z.string().default('redis://localhost:6379'),
 
   // Security
