@@ -1,6 +1,9 @@
+import fs from 'fs';
+import path from 'path';
 import axios, { AxiosError } from 'axios';
 import { env } from '../config/env.js';
 import { logger } from '../utils/logger.js';
+import { mediaStorageService } from './mediaStorage.service.js';
 
 export interface MetaOAuthTokenResponse {
   access_token: string;
@@ -138,26 +141,94 @@ export class FacebookGraphService {
 
   /**
    * Upload an unpublished photo to a Page (published=false)
-   * Returns Photo ID (media_fbid) to be attached to feed post
+   * Returns Photo ID (media_fbid) to be attached to feed post.
+   * Automatically detects local files/localhost URLs and uploads direct binary multipart/form-data
+   * to prevent Facebook Error 324 ("Missing or invalid image file").
    */
   async uploadUnpublishedPhoto(
     pageId: string,
     pageAccessToken: string,
-    imageUrl: string,
+    imageSource: string | { url?: string; buffer?: Buffer; filePath?: string; filename?: string },
     caption?: string
   ): Promise<{ id: string }> {
     try {
+      let isLocal = false;
+      let fileBuffer: Buffer | null = null;
+      let fileName = 'photo.jpg';
+
+      if (typeof imageSource === 'object') {
+        if (imageSource.buffer) {
+          isLocal = true;
+          fileBuffer = imageSource.buffer;
+          if (imageSource.filename) fileName = imageSource.filename;
+        } else if (imageSource.filePath && fs.existsSync(imageSource.filePath)) {
+          isLocal = true;
+          fileBuffer = await fs.promises.readFile(imageSource.filePath);
+          fileName = path.basename(imageSource.filePath);
+        } else if (imageSource.url) {
+          imageSource = imageSource.url;
+        }
+      }
+
+      if (typeof imageSource === 'string') {
+        if (fs.existsSync(imageSource)) {
+          isLocal = true;
+          fileBuffer = await fs.promises.readFile(imageSource);
+          fileName = path.basename(imageSource);
+        } else if (
+          imageSource.includes('localhost') ||
+          imageSource.includes('127.0.0.1') ||
+          imageSource.startsWith('/uploads/') ||
+          imageSource.includes('/uploads/')
+        ) {
+          const uploadsIndex = imageSource.indexOf('/uploads/');
+          if (uploadsIndex !== -1) {
+            const relativeStorageKey = decodeURIComponent(imageSource.substring(uploadsIndex + '/uploads/'.length));
+            const foundPath = mediaStorageService.getLocalFilePath(relativeStorageKey);
+            if (foundPath) {
+              isLocal = true;
+              fileBuffer = await fs.promises.readFile(foundPath);
+              fileName = path.basename(foundPath);
+            }
+          }
+        }
+      }
+
+      // If we have local binary data, upload via multipart/form-data with parameter 'source'
+      if (isLocal && fileBuffer) {
+        const ext = path.extname(fileName).toLowerCase();
+        const mimeType = ext === '.png' ? 'image/png' : ext === '.webp' ? 'image/webp' : 'image/jpeg';
+        const blob = new Blob([fileBuffer], { type: mimeType });
+
+        const formData = new FormData();
+        formData.append('access_token', pageAccessToken);
+        formData.append('published', 'false');
+        if (caption) formData.append('caption', caption);
+        formData.append('source', blob, fileName);
+
+        const response = await axios.post<{ id: string }>(
+          `${this.baseUrl}/${pageId}/photos`,
+          formData,
+          {
+            timeout: 60000,
+          }
+        );
+        return response.data;
+      }
+
+      // Otherwise, upload via public 'url' parameter
+      const targetUrl = typeof imageSource === 'string' ? imageSource : imageSource.url || '';
       const response = await axios.post<{ id: string }>(
         `${this.baseUrl}/${pageId}/photos`,
         null,
         {
           params: {
-            url: imageUrl,
+            url: targetUrl,
             published: false,
             caption: caption || '',
             access_token: pageAccessToken,
           },
-          timeout: 60000, // 60s timeout for photo upload
+          timeout: 60000,
         }
       );
       return response.data;

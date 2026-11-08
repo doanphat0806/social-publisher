@@ -104,6 +104,36 @@ export class MediaStorageService {
   }
 
   /**
+   * Resolves absolute file path for a storageKey if it exists on local disk
+   */
+  getLocalFilePath(storageKey: string): string | null {
+    const fullPath = path.resolve(this.uploadDir, storageKey);
+    if (fs.existsSync(fullPath)) {
+      return fullPath;
+    }
+    const altPath1 = path.resolve(process.cwd(), 'uploads', storageKey);
+    if (fs.existsSync(altPath1)) {
+      return altPath1;
+    }
+    const altPath2 = path.resolve(process.cwd(), 'backend', 'uploads', storageKey);
+    if (fs.existsSync(altPath2)) {
+      return altPath2;
+    }
+    return null;
+  }
+
+  /**
+   * Get file Buffer directly
+   */
+  async getFileBuffer(storageKey: string): Promise<Buffer | null> {
+    const localPath = this.getLocalFilePath(storageKey);
+    if (localPath) {
+      return await fs.promises.readFile(localPath);
+    }
+    return null;
+  }
+
+  /**
    * Delete file from storage
    */
   async deleteFile(storageKey: string): Promise<void> {

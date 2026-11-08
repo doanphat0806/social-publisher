@@ -141,13 +141,14 @@ export class PublisherWorker {
     try {
       for (let i = photoIds.length; i < mediaAssets.length; i++) {
         const asset = mediaAssets[i];
+        const localPath = mediaStorageService.getLocalFilePath(asset.storageKey);
         const imageUrl = mediaStorageService.getFileUrl(asset.storageKey, baseUrl);
 
         logger.info(`Uploading photo ${i + 1}/${mediaAssets.length} for page ${pageId}...`);
         const photoResult = await facebookGraphService.uploadUnpublishedPhoto(
           pageId,
           pageAccessToken,
-          imageUrl,
+          localPath ? { filePath: localPath } : imageUrl,
           post.caption
         );
 
