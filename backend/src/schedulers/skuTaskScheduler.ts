@@ -1,5 +1,6 @@
 import { SkuPublishTask, SkuPostingCampaign, FacebookPage } from '../models/index.js';
 import { queueManager } from '../queues/queueManager.js';
+import { skuPublisherWorker } from '../workers/skuPublisherWorker.js';
 import { socketManager } from '../sockets/socketManager.js';
 import { logger } from '../utils/logger.js';
 
@@ -57,29 +58,53 @@ export class SkuTaskScheduler {
           continue;
         }
 
-        // Add job to BullMQ with deterministic jobId
-        await queue.add(
-          'sku-publish-task',
-          {
-            taskId: task._id.toString(),
-            campaignId: campaign._id.toString(),
-            productId: task.productId.toString(),
+        // Attempt to queue via BullMQ (Redis), or fallback directly if Redis is not running
+        try {
+          await queue.add(
+            'sku-publish-task',
+            {
+              taskId: task._id.toString(),
+              campaignId: campaign._id.toString(),
+              productId: task.productId.toString(),
+              pageId: task.pageId,
+            },
+            {
+              jobId: `sku_${task._id.toString()}`,
+            }
+          );
+
+          task.status = 'queued';
+          await task.save();
+
+          socketManager.emitToUser(campaign.userId.toString(), 'sku:publish:queued', {
+            taskId: task._id,
+            campaignId: campaign._id,
+            productCode: task.productCode,
             pageId: task.pageId,
-          },
-          {
-            jobId: `sku_${task._id.toString()}`,
+          });
+        } catch (queueErr: any) {
+          logger.warn(
+            `Redis/BullMQ không khả dụng (${queueErr.message}). Tự động chuyển sang chế độ thực thi trực tiếp cho task SKU ${task._id}...`
+          );
+
+          // Mark task as processing to avoid duplicate runs
+          task.status = 'queued';
+          await task.save();
+
+          // Execute directly in-process
+          try {
+            await skuPublisherWorker.processJob({
+              data: {
+                taskId: task._id.toString(),
+                campaignId: campaign._id.toString(),
+                productId: task.productId.toString(),
+                pageId: task.pageId,
+              },
+            } as any);
+          } catch (execErr: any) {
+            logger.error(`Direct execution error for task ${task._id}:`, execErr.message);
           }
-        );
-
-        task.status = 'queued';
-        await task.save();
-
-        socketManager.emitToUser(campaign.userId.toString(), 'sku:publish:queued', {
-          taskId: task._id,
-          campaignId: campaign._id,
-          productCode: task.productCode,
-          pageId: task.pageId,
-        });
+        }
       }
     } catch (err: any) {
       logger.error('SkuTaskScheduler error:', err);

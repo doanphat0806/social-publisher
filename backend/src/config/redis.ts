@@ -6,10 +6,10 @@ export const redisOptions: RedisOptions = {
   maxRetriesPerRequest: null, // Required by BullMQ
   enableReadyCheck: false,
   retryStrategy(times) {
-    if (env.NODE_ENV === 'development' && times > 5) {
-      return null; // Stop endless retry spam if redis is not running locally
+    if (times > 3) {
+      return null; // Stop endless retry spam if redis is not running
     }
-    const delay = Math.min(times * 1000, 5000);
+    const delay = Math.min(times * 1000, 3000);
     return delay;
   },
 };

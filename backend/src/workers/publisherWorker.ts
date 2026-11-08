@@ -41,6 +41,11 @@ export class PublisherWorker {
       logger.error(`Job failed: ${job?.id} error: ${err.message}`);
     });
 
+    this.worker.on('error', (err) => {
+      // Gracefully handle Redis connection drops/absence
+      logger.warn(`PublisherWorker connection warning (Redis): ${err.message}`);
+    });
+
     logger.info('PublisherWorker started');
   }
 

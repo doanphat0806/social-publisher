@@ -1,5 +1,6 @@
 import { PublishTask, Campaign, FacebookPage } from '../models/index.js';
 import { queueManager } from '../queues/queueManager.js';
+import { publisherWorker } from '../workers/publisherWorker.js';
 import { socketManager } from '../sockets/socketManager.js';
 import { logger } from '../utils/logger.js';
 
@@ -58,33 +59,53 @@ export class TaskScheduler {
           continue;
         }
 
-        // Add job to BullMQ with deterministic jobId = task._id.toString()
-        // BullMQ deduplicates jobs with the same jobId
-        await queue.add(
-          'publish-task',
-          {
-            taskId: task._id.toString(),
-            campaignId: campaign._id.toString(),
-            postId: task.postId.toString(),
+        // Attempt to queue via BullMQ (Redis), or fallback directly if Redis is not running
+        try {
+          await queue.add(
+            'publish-task',
+            {
+              taskId: task._id.toString(),
+              campaignId: campaign._id.toString(),
+              postId: task.postId.toString(),
+              pageId: task.pageId,
+            },
+            {
+              jobId: task._id.toString(),
+            }
+          );
+
+          task.status = 'queued';
+          await task.save();
+
+          socketManager.emitToUser(campaign.userId.toString(), 'publish:queued', {
+            taskId: task._id,
+            campaignId: campaign._id,
             pageId: task.pageId,
-          },
-          {
-            jobId: task._id.toString(),
+            scheduledAt: task.scheduledAt,
+          });
+
+          logger.info(`Task ${task._id} queued to BullMQ for page ${task.pageId}`);
+        } catch (queueErr: any) {
+          logger.warn(
+            `Redis/BullMQ không khả dụng (${queueErr.message}). Tự động chuyển sang chế độ thực thi trực tiếp cho task ${task._id}...`
+          );
+
+          task.status = 'queued';
+          await task.save();
+
+          try {
+            await publisherWorker.processJob({
+              data: {
+                taskId: task._id.toString(),
+                campaignId: campaign._id.toString(),
+                postId: task.postId.toString(),
+                pageId: task.pageId,
+              },
+            } as any);
+          } catch (execErr: any) {
+            logger.error(`Direct execution error for task ${task._id}:`, execErr.message);
           }
-        );
-
-        // Mark task as queued
-        task.status = 'queued';
-        await task.save();
-
-        socketManager.emitToUser(campaign.userId.toString(), 'publish:queued', {
-          taskId: task._id,
-          campaignId: campaign._id,
-          pageId: task.pageId,
-          scheduledAt: task.scheduledAt,
-        });
-
-        logger.info(`Task ${task._id} queued to BullMQ for page ${task.pageId}`);
+        }
       }
     } catch (error: any) {
       logger.error('Error during scheduler scan:', error.message);

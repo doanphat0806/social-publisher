@@ -48,6 +48,11 @@ export class SkuPublisherWorker {
       logger.error(`SkuPublisherWorker Job failed: ${job?.id} error: ${err.message}`);
     });
 
+    this.worker.on('error', (err) => {
+      // Gracefully handle Redis connection drops/absence
+      logger.warn(`SkuPublisherWorker connection warning (Redis): ${err.message}`);
+    });
+
     logger.info('SkuPublisherWorker started');
   }
 
