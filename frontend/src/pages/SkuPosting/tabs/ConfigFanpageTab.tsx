@@ -105,13 +105,25 @@ export const ConfigFanpageTab: React.FC<ConfigFanpageTabProps> = ({
   const totalTasks = totalProducts * selectedPages.length;
   const estimatedHours = ((totalProducts * intervalMinutes) / 60).toFixed(1);
 
+  const handleNext = () => {
+    if (!campaignName.trim()) {
+      const now = new Date();
+      const dateStr = `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getFullYear()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+      setCampaignName(`Chiến dịch SKU - ${dateStr}`);
+    }
+    onNextTab();
+  };
+
   return (
     <div className="space-y-8">
       {/* Campaign Name */}
       <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
-        <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block">
-          Tên chiến dịch đăng bài theo mã:
-        </label>
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block">
+            Tên chiến dịch đăng bài theo mã:
+          </label>
+          <span className="text-[11px] text-slate-500">Tự động gợi ý hoặc chỉnh sửa theo ý bạn</span>
+        </div>
         <input
           type="text"
           value={campaignName}
@@ -378,15 +390,27 @@ export const ConfigFanpageTab: React.FC<ConfigFanpageTabProps> = ({
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={onNextTab}
-            disabled={selectedPages.length === 0 || !campaignName.trim()}
-            className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center space-x-2 shadow-lg shadow-indigo-600/30 transition-all disabled:opacity-50"
-          >
-            <span>Sang bước Xem trước & Xác nhận</span>
-            <ChevronRight className="w-4 h-4" />
-          </button>
+          <div className="flex items-center space-x-3">
+            {selectedPages.length === 0 && (
+              <span className="text-xs text-amber-400 font-medium flex items-center space-x-1.5 bg-amber-500/10 px-3 py-1.5 rounded-lg border border-amber-500/20">
+                <Info className="w-3.5 h-3.5" />
+                <span>Vui lòng chọn ít nhất 1 Fanpage</span>
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={handleNext}
+              disabled={selectedPages.length === 0}
+              className={`px-6 py-2.5 rounded-xl font-bold text-xs flex items-center space-x-2 transition-all ${
+                selectedPages.length > 0
+                  ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/40 cursor-pointer hover:scale-[1.02] active:scale-[0.98]'
+                  : 'bg-slate-800 text-slate-500 opacity-60 cursor-not-allowed'
+              }`}
+            >
+              <span>Sang bước Xem trước & Xác nhận</span>
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
     </div>

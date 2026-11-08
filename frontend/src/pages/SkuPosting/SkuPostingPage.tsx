@@ -26,7 +26,11 @@ export const SkuPostingPage: React.FC = () => {
   const [scanning, setScanning] = useState(false);
 
   // Tab 3 State: Campaign & Fanpage Config
-  const [campaignName, setCampaignName] = useState<string>('');
+  const [campaignName, setCampaignName] = useState<string>(() => {
+    const now = new Date();
+    const dateStr = `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getFullYear()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    return `Chiến dịch SKU - ${dateStr}`;
+  });
   const [captionTemplate, setCaptionTemplate] = useState<string>(
     `MS {product_code}\n\n👉 Sale cực sốc chỉ còn {price}K\n👉 Số lượng chỉ còn vài chiếc thôi ạ...\n\nNhanh tay inbox ngay cho shop ạ 👌👌👌`
   );
@@ -147,10 +151,11 @@ export const SkuPostingPage: React.FC = () => {
 
   // Launch Campaign
   const handleLaunchCampaign = async () => {
-    if (!campaignName.trim()) {
-      alert('Vui lòng nhập tên chiến dịch');
-      setActiveTab('config');
-      return;
+    let finalCampaignName = campaignName.trim();
+    if (!finalCampaignName) {
+      const now = new Date();
+      finalCampaignName = `Chiến dịch SKU - ${now.getDate().toString().padStart(2, '0')}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getFullYear()}`;
+      setCampaignName(finalCampaignName);
     }
 
     try {
