@@ -162,13 +162,19 @@ export class SkuPublisherWorker {
         });
       }
 
-      // 5. Create Multi-photo Feed Post
+      // 5. Create Multi-photo Feed Post with Send Message CTA button
       logger.info(`Publishing SKU ${task.productCode} feed post (${photoIds.length} photos) to page ${pageId}...`);
+      const finalCaption = task.caption.replace(
+        /\{inbox_link\}|\{messenger_link\}|\{inbox\}|\{messenger\}/gi,
+        `https://m.me/${pageId}`
+      );
+
       const feedResult = await facebookGraphService.createMultiPhotoPost(
         pageId,
         pageAccessToken,
-        task.caption,
-        photoIds
+        finalCaption,
+        photoIds,
+        { enableSendMessenger: true }
       );
 
       // Successfully published!

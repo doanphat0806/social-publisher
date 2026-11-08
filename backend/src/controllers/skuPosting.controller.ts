@@ -198,7 +198,7 @@ export class SkuPostingController {
             captionTemplate || `MS {product_code}\n\n👉 Sale cực sốc chỉ còn {price}K\n👉 Nhanh tay inbox ngay!`,
             task.productCode,
             prod?.price || 0,
-            { unit: priceUnit, showCodeLine }
+            { unit: priceUnit, showCodeLine, pageId: task.pageId }
           );
 
         return {

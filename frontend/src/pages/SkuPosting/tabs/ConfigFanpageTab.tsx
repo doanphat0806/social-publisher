@@ -11,6 +11,7 @@ import {
   Info,
   Layers,
   Settings2,
+  MessageCircle,
 } from 'lucide-react';
 import { FacebookPage } from '../../../types/index.js';
 
@@ -93,7 +94,8 @@ export const ConfigFanpageTab: React.FC<ConfigFanpageTabProps> = ({
   let sampleCaption = captionTemplate
     .replace(/\{product_code\}|\{productCode\}/gi, 'GP1903382')
     .replace(/\{price\}K/gi, priceUnit === 'K' ? '149K' : samplePrice)
-    .replace(/\{price\}/gi, samplePrice);
+    .replace(/\{price\}/gi, samplePrice)
+    .replace(/\{inbox_link\}|\{messenger_link\}|\{inbox\}|\{messenger\}/gi, 'https://m.me/your_fanpage');
 
   if (!showCodeLine) {
     sampleCaption = sampleCaption
@@ -162,6 +164,14 @@ export const ConfigFanpageTab: React.FC<ConfigFanpageTabProps> = ({
               >
                 {`{price}`}
               </button>
+              <button
+                type="button"
+                onClick={() => handleInsertVar('inbox_link')}
+                className="px-2.5 py-1 bg-blue-600/20 hover:bg-blue-600/40 text-blue-300 rounded-lg text-xs font-mono transition-colors flex items-center space-x-1"
+              >
+                <MessageCircle className="w-3 h-3" />
+                <span>{`{inbox_link}`}</span>
+              </button>
             </div>
 
             {/* Caption Textarea */}
@@ -199,6 +209,14 @@ export const ConfigFanpageTab: React.FC<ConfigFanpageTabProps> = ({
                 />
                 <span className="text-slate-300">Hiển thị dòng mã sản phẩm</span>
               </label>
+            </div>
+
+            {/* Messenger CTA notification badge */}
+            <div className="flex items-center space-x-2 p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-300 text-[11px]">
+              <MessageCircle className="w-4 h-4 text-blue-400 shrink-0" />
+              <span>
+                <strong>Tự động đính kèm nút "Gửi tin nhắn":</strong> Bài đăng trên Facebook sẽ được tạo kèm nút CTA Messenger dẫn trực tiếp về hộp thư Fanpage.
+              </span>
             </div>
 
             {/* Live Caption Sample Preview */}

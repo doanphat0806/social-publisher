@@ -163,13 +163,19 @@ export class PublisherWorker {
         });
       }
 
-      // 5. Step: Create Multi-photo Feed Post
+      // 5. Step: Create Multi-photo Feed Post with Send Message CTA button
       logger.info(`Publishing feed post with ${photoIds.length} photos to page ${pageId}...`);
+      const finalCaption = post.caption.replace(
+        /\{inbox_link\}|\{messenger_link\}|\{inbox\}|\{messenger\}/gi,
+        `https://m.me/${pageId}`
+      );
+
       const feedResult = await facebookGraphService.createMultiPhotoPost(
         pageId,
         pageAccessToken,
-        post.caption,
-        photoIds
+        finalCaption,
+        photoIds,
+        { enableSendMessenger: true }
       );
 
       // Successfully published!

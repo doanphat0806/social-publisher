@@ -11,6 +11,7 @@ import {
   Calendar,
   Layers,
   Image as ImageIcon,
+  MessageCircle,
 } from 'lucide-react';
 import { SkuGroup } from './UploadImagesTab.js';
 import { FacebookPage } from '../../../types/index.js';
@@ -224,6 +225,21 @@ export const PreviewPostsTab: React.FC<PreviewPostsTabProps> = ({
                       Không có ảnh đính kèm
                     </div>
                   )}
+                </div>
+
+                {/* Facebook Send Message CTA Mockup Button */}
+                <div className="px-4 pb-3">
+                  <div className="p-2.5 rounded-xl bg-blue-600/10 border border-blue-500/30 flex items-center justify-between text-blue-400">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center text-white">
+                        <MessageCircle className="w-3 h-3 fill-white" />
+                      </div>
+                      <span className="text-xs font-bold text-white">Gửi tin nhắn</span>
+                    </div>
+                    <span className="text-[10px] text-blue-400 font-semibold px-2 py-0.5 rounded-md bg-blue-600/20">
+                      m.me/{post.pageId}
+                    </span>
+                  </div>
                 </div>
               </div>
 

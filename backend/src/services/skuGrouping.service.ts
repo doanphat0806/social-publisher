@@ -222,11 +222,13 @@ export class SkuGroupingService {
     options: {
       unit?: 'K' | 'nghìn đồng' | 'VNĐ';
       showCodeLine?: boolean;
+      pageId?: string;
     } = {}
   ): string {
     const unit = options.unit || 'K';
     const showCodeLine = options.showCodeLine !== false;
     const formattedPrice = this.formatPrice(price, unit);
+    const messengerUrl = options.pageId ? `https://m.me/${options.pageId}` : 'https://m.me';
 
     let caption = template;
 
@@ -240,7 +242,8 @@ export class SkuGroupingService {
       .replace(/\{product_code\}/gi, productCode)
       .replace(/\{productCode\}/gi, productCode)
       .replace(/\{price\}/gi, formattedPrice)
-      .replace(/\{price_raw\}/gi, price.toString());
+      .replace(/\{price_raw\}/gi, price.toString())
+      .replace(/\{inbox_link\}|\{messenger_link\}|\{inbox\}|\{messenger\}/gi, messengerUrl);
 
     if (!showCodeLine) {
       // Remove lines like "MS GP1903382" or "Mã: GP1903382"

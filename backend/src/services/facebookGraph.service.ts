@@ -240,27 +240,59 @@ export class FacebookGraphService {
   /**
    * Publish multi-photo post to Page Feed using attached_media
    * POST /{page-id}/feed with message & attached_media: [{media_fbid: 'photo_id'}, ...]
+   * Automatically attaches 'MESSAGE_PAGE' Call-to-Action button ("Gửi tin nhắn")
    */
   async createMultiPhotoPost(
     pageId: string,
     pageAccessToken: string,
     message: string,
-    photoIds: string[]
+    photoIds: string[],
+    options?: {
+      enableSendMessenger?: boolean;
+    }
   ): Promise<{ id: string; postUrl: string }> {
     try {
       const attachedMedia = photoIds.map((id) => ({ media_fbid: id }));
+      const shouldAttachCta = options?.enableSendMessenger !== false;
 
-      const response = await axios.post<{ id: string }>(
-        `${this.baseUrl}/${pageId}/feed`,
-        {
+      const postFeed = async (withCta: boolean) => {
+        const payload: any = {
           message: message,
           attached_media: attachedMedia,
           access_token: pageAccessToken,
-        },
-        {
-          timeout: 45000, // 45s timeout for feed creation
+        };
+
+        if (withCta) {
+          payload.call_to_action = {
+            type: 'MESSAGE_PAGE',
+            value: {
+              link: `https://m.me/${pageId}`,
+            },
+          };
         }
-      );
+
+        return await axios.post<{ id: string }>(
+          `${this.baseUrl}/${pageId}/feed`,
+          payload,
+          {
+            timeout: 45000, // 45s timeout for feed creation
+          }
+        );
+      };
+
+      let response;
+      if (shouldAttachCta) {
+        try {
+          response = await postFeed(true);
+        } catch (ctaErr: any) {
+          logger.warn(
+            `Meta Graph API từ chối call_to_action [${ctaErr.response?.data?.error?.message || ctaErr.message}]. Tự động đăng feed không gắn nút CTA...`
+          );
+          response = await postFeed(false);
+        }
+      } else {
+        response = await postFeed(false);
+      }
 
       const postId = response.data.id;
       // Format Facebook URL: https://facebook.com/{postId}

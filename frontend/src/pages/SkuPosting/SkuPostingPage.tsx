@@ -32,7 +32,7 @@ export const SkuPostingPage: React.FC = () => {
     return `Chiến dịch SKU - ${dateStr}`;
   });
   const [captionTemplate, setCaptionTemplate] = useState<string>(
-    `MS {product_code}\n\n👉 Sale cực sốc chỉ còn {price}K\n👉 Số lượng chỉ còn vài chiếc thôi ạ...\n\nNhanh tay inbox ngay cho shop ạ 👌👌👌`
+    `MS {product_code}\n\n👉 Sale cực sốc chỉ còn {price}K\n👉 Số lượng chỉ còn vài chiếc thôi ạ...\n\nNhanh tay inbox ngay cho shop: {inbox_link} 👌👌👌`
   );
   const [priceUnit, setPriceUnit] = useState<'K' | 'nghìn đồng' | 'VNĐ'>('K');
   const [showCodeLine, setShowCodeLine] = useState<boolean>(true);
